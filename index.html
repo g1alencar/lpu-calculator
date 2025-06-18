@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetApp LPU Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>NetApp LPU Calculator</h1>
+  <div class="card">
+    <label for="clientName"><strong>Nome do cliente:</strong></label>
+    <input type="text" id="clientName" placeholder="ex.: Acme Corp" />
+    <p>Preencha as quantidades de cada serviço abaixo (coloque 0 se não se aplica):</p>
+    <input class="search-input" type="text" id="serviceSearch" placeholder="Buscar por código ou descrição do serviço..." />
+    <form id="lpuForm">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Qtd.</th></tr>
+          </thead>
+          <tbody id="servicesBody"></tbody>
+        </table>
+      </div>
+      <div class="flex-row">
+        <div class="card">
+          <h2>Valores por hora (opcional)</h2>
+          <table>
+            <tr><th>Perfil</th><th>R$/h</th></tr>
+            <tr><td>gp</td><td><input type="number" id="rate-gp" min="0" value="0" /></td></tr>
+            <tr><td>jr</td><td><input type="number" id="rate-jr" min="0" value="0" /></td></tr>
+            <tr><td>pl</td><td><input type="number" id="rate-pl" min="0" value="0" /></td></tr>
+            <tr><td>sr</td><td><input type="number" id="rate-sr" min="0" value="0" /></td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <label for="supportMonths"><strong>Meses de suporte continuado (1,5h/mês):</strong></label>
+          <input type="number" id="supportMonths" min="0" value="0" style="width:6rem;" />
+        </div>
+      </div>
+      <button type="button" id="calcBtn">Calcular</button>
+    </form>
+  </div>
+  <div id="output" class="card">
+    <h2>Resultado em horas</h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Perfil</th><th>Horas</th></tr></thead>
+        <tbody id="hoursBody"></tbody>
+        <tfoot><tr><th>Total</th><th id="totalHours"></th></tr></tfoot>
+      </table>
+    </div>
+    <div id="costSection" style="display:none;">
+      <h2>Estimativa de custo</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Perfil</th><th>Horas</th><th>R$/h</th><th>Subtotal</th></tr></thead>
+          <tbody id="costBody"></tbody>
+          <tfoot><tr><th colspan='3'>Total</th><th id="totalCost"></th></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <h2>Resumo do projeto</h2>
+    <details open>
+      <summary>Clique para ver/ocultar</summary>
+      <textarea id="summary" readonly style="height:150px;"></textarea>
+    </details>
+    <button type="button" id="copyBtn">Copiar Resumo</button>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
