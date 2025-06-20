@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NetApp LPU Calculator</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <h1>NetApp LPU Calculator</h1>
@@ -12,8 +12,8 @@
     <label for="clientName"><strong>Nome do cliente:</strong></label>
     <input type="text" id="clientName" placeholder="ex.: Acme Corp" />
     <p>Preencha as quantidades de cada serviço abaixo (coloque 0 se não se aplica):</p>
-    <input class="search-input" type="text" id="serviceSearch" placeholder="Buscar por código ou descrição do serviço..." />
-    <form id="lpuForm">
+    <form id="lpuForm" onsubmit="return false;">
+      <input type="text" id="serviceSearch" placeholder="Buscar serviço por código ou descrição..." style="margin-bottom: 1rem; width: 100%;">
       <div style="overflow-x:auto;">
         <table>
           <thead>
@@ -38,10 +38,23 @@
           <input type="number" id="supportMonths" min="0" value="0" style="width:6rem;" />
         </div>
       </div>
-      <button type="button" id="calcBtn">Calcular</button>
+
+      <div style="margin: 1rem 0;">
+        <label for="projectName"><strong>Nome do projeto:</strong></label>
+        <input type="text" id="projectName" placeholder="Ex: Projeto XPTO" style="width:200px;" />
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+          <button type="button" id="saveBtn"><span>💾</span>Salvar</button>
+          <select id="projectsList"></select>
+          <button type="button" id="loadBtn"><span>📂</span>Carregar</button>
+          <button type="button" id="deleteBtn"><span>🗑️</span>Excluir</button>
+        </div>
+      </div>
+      <div id="formMessage"></div>
+      <button type="button" id="calcBtn" style="margin-top: 1rem;"><span>🧮</span>Calcular</button>
     </form>
   </div>
-  <div id="output" class="card">
+
+  <div id="output" class="card" style="display:none;">
     <h2>Resultado em horas</h2>
     <div style="overflow-x:auto;">
       <table>
@@ -63,10 +76,18 @@
     <h2>Resumo do projeto</h2>
     <details open>
       <summary>Clique para ver/ocultar</summary>
-      <textarea id="summary" readonly style="height:150px;"></textarea>
+      <textarea id="summary" readonly style="height:150px; width:100%;"></textarea>
     </details>
-    <button type="button" id="copyBtn">Copiar Resumo</button>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+      <button type="button" id="copyBtn"><span>📋</span>Copiar Resumo</button>
+      <button type="button" id="pdfBtn"><span>📄</span>Exportar PDF</button>
+      <button type="button" id="csvBtn"><span>🗂️</span>Exportar CSV</button>
+    </div>
   </div>
+
+  <!-- jsPDF, AutoTable e App.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

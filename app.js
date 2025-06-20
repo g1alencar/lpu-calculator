@@ -1,3 +1,4 @@
+// ========== Variáveis e Dados ==========
 const serviceDescriptions = {
   "PLA-001": "Definição de escopo, cronograma, responsabilidades, pontos de contato, requisitos de infra (rede, energia, rack). Essencial para qualquer projeto.",
   "PLA-002": "Análise do ambiente de origem (servidores, volumes, permissões, tipos de arquivos), definição da estratégia e ferramenta de migração. Para ambientes complexos.",
@@ -43,38 +44,32 @@ const services = [
 ];
 
 const profiles = ["gp","jr","pl","sr"];
+
+// ========== MONTAGEM DA TABELA ==========
 const bodyTbl = document.getElementById("servicesBody");
-
-// Função para renderizar a tabela de serviços com filtro
-function renderServicesTable(filterText = "") {
-  bodyTbl.innerHTML = "";
-  const ft = filterText.trim().toLowerCase();
-  services.forEach(s => {
-    if (
-      ft === "" ||
-      s.code.toLowerCase().includes(ft) ||
-      s.desc.toLowerCase().includes(ft)
-    ) {
-      const tooltip = serviceDescriptions[s.code] || s.desc;
-      bodyTbl.insertAdjacentHTML("beforeend",
-        `<tr>
-          <td>${s.code}</td>
-          <td title="${tooltip}"><strong>${s.desc}</strong><br><small>${tooltip}</small></td>
-          <td>${s.unit}</td>
-          <td><input name='${s.code}' type='number' min='0' value='0' title="Quantidade de ${s.desc}"></td>
-        </tr>`
-      );
-    }
-  });
-}
-// Inicializa a tabela
-renderServicesTable();
-
-// Evento para busca dinâmica
-document.getElementById('serviceSearch').addEventListener('input', function() {
-  renderServicesTable(this.value);
+services.forEach(s => {
+  const tooltip = serviceDescriptions[s.code] || s.desc;
+  bodyTbl.insertAdjacentHTML("beforeend",
+    `<tr>
+      <td>${s.code}</td>
+      <td title="${tooltip}"><strong>${s.desc}</strong><br><small>${tooltip}</small></td>
+      <td>${s.unit}</td>
+      <td><input name='${s.code}' type='number' min='0' value='0' title="Quantidade de ${s.desc}"></td>
+    </tr>`
+  );
 });
 
+// ========== BUSCA DINÂMICA ==========
+document.getElementById("serviceSearch").addEventListener("input", function() {
+  const search = this.value.trim().toLowerCase();
+  const trs = bodyTbl.querySelectorAll("tr");
+  trs.forEach(tr => {
+    const txt = tr.textContent.toLowerCase();
+    tr.style.display = txt.includes(search) ? "" : "none";
+  });
+});
+
+// ========== CÁLCULO ==========
 const fmt = v => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v);
 const val = id => parseFloat(document.getElementById(id).value)||0;
 
@@ -114,9 +109,207 @@ function calculate(){
   if(months>0) txt+=`\nHoras SR suporte: ${(months*1.5).toFixed(1)}h\nDespesa suporte: ${fmt(supExp)}`;
   document.getElementById('summary').value = txt;
   document.getElementById('output').style.display = 'block';
+  document.getElementById('formMessage').innerHTML = "<span style='color:green;'>Cálculo realizado!</span>";
 }
 document.getElementById('calcBtn').addEventListener('click', calculate);
+
+// ========== COPIAR RESUMO ==========
 document.getElementById('copyBtn').addEventListener('click', () => {
   const t = document.getElementById('summary'); t.select(); document.execCommand('copy');
-  alert('Resumo copiado');
+  document.getElementById('formMessage').innerHTML = "Resumo copiado!";
+  setTimeout(() => { document.getElementById('formMessage').innerHTML = ""; }, 1500);
 });
+
+// ========== MULTIPROJETOS (LocalStorage) ==========
+function getAllProjects() {
+  return JSON.parse(localStorage.getItem("lpu_projects") || "{}");
+}
+function saveAllProjects(obj) {
+  localStorage.setItem("lpu_projects", JSON.stringify(obj));
+}
+function fillProjectList(selected) {
+  const sel = document.getElementById("projectsList");
+  const projects = getAllProjects();
+  sel.innerHTML = "";
+  Object.keys(projects).forEach(name => {
+    sel.insertAdjacentHTML("beforeend", `<option ${name===selected?'selected':''}>${name}</option>`);
+  });
+}
+function readProjectForm() {
+  const servicesObj = {};
+  services.forEach(s => {
+    servicesObj[s.code] = document.forms.lpuForm.elements[s.code].value;
+  });
+  return {
+    clientName: document.getElementById('clientName').value,
+    rates: {
+      gp: val('rate-gp'),
+      jr: val('rate-jr'),
+      pl: val('rate-pl'),
+      sr: val('rate-sr'),
+    },
+    supportMonths: val('supportMonths'),
+    services: servicesObj
+  };
+}
+function applyProjectToForm(project) {
+  document.getElementById('clientName').value = project.clientName || "";
+  document.getElementById('rate-gp').value = project.rates.gp || "";
+  document.getElementById('rate-jr').value = project.rates.jr || "";
+  document.getElementById('rate-pl').value = project.rates.pl || "";
+  document.getElementById('rate-sr').value = project.rates.sr || "";
+  document.getElementById('supportMonths').value = project.supportMonths || 0;
+  services.forEach(s => {
+    document.forms.lpuForm.elements[s.code].value = project.services[s.code] || 0;
+  });
+}
+function validateProjectName(name) {
+  return !!name && /^[A-Za-z0-9 _-]{2,30}$/.test(name);
+}
+document.getElementById('saveBtn').onclick = function() {
+  const name = document.getElementById("projectName").value.trim();
+  if (!validateProjectName(name)) {
+    document.getElementById('formMessage').innerHTML = "Nome do projeto inválido.";
+    return;
+  }
+  const projects = getAllProjects();
+  projects[name] = readProjectForm();
+  saveAllProjects(projects);
+  fillProjectList(name);
+  document.getElementById('formMessage').innerHTML = "Projeto salvo!";
+};
+document.getElementById('loadBtn').onclick = function() {
+  const name = document.getElementById("projectsList").value;
+  const projects = getAllProjects();
+  if (!name || !projects[name]) {
+    document.getElementById('formMessage').innerHTML = "Selecione um projeto para carregar.";
+    return;
+  }
+  applyProjectToForm(projects[name]);
+  document.getElementById('formMessage').innerHTML = "Projeto carregado!";
+  setTimeout(() => { document.getElementById('formMessage').innerHTML = ""; }, 1400);
+};
+document.getElementById('deleteBtn').onclick = function() {
+  const name = document.getElementById("projectsList").value;
+  if (!name) return;
+  const projects = getAllProjects();
+  if (!projects[name]) return;
+  if (!confirm("Tem certeza que deseja excluir o projeto '"+name+"'?")) return;
+  delete projects[name];
+  saveAllProjects(projects);
+  fillProjectList("");
+  document.getElementById('formMessage').innerHTML = "Projeto excluído!";
+  setTimeout(() => { document.getElementById('formMessage').innerHTML = ""; }, 1400);
+};
+// Inicializa lista ao carregar
+fillProjectList("");
+
+// ========== EXPORTAÇÃO PDF ==========
+document.getElementById('pdfBtn').onclick = function() {
+  const name = document.getElementById('projectsList').value;
+  const projects = getAllProjects();
+  if (!name || !projects[name]) {
+    alert("Selecione um projeto salvo para exportar em PDF!");
+    return;
+  }
+  const project = projects[name];
+
+  const doc = new window.jspdf.jsPDF({orientation: "portrait", unit: "pt", format: "a4"});
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Título e informações do projeto
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("Proposta de Serviços NetApp", pageWidth / 2, 50, {align: "center"});
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Projeto: ${name}`, 40, 80);
+  doc.text(`Cliente: ${project.clientName || '[cliente]'}`, 40, 100);
+  doc.text(`Data: ${new Date().toLocaleDateString()}`, 40, 120);
+
+  let lastY = 150;
+
+  // Tabela de serviços
+  let servRows = [];
+  for (const cod in project.services) {
+    if (+project.services[cod] > 0) {
+      const desc = (services.find(s => s.code === cod)?.desc || cod);
+      servRows.push([cod, desc, project.services[cod]]);
+    }
+  }
+  if (servRows.length > 0) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Serviços Selecionados:", 40, lastY);
+    doc.autoTable({
+      startY: lastY + 10,
+      head: [['Código', 'Descrição', 'Qtd.']],
+      body: servRows,
+      styles: {font: "helvetica", fontSize: 11},
+      margin: {left: 40, right: 40},
+      headStyles: {fillColor: [0,91,150]},
+    });
+    lastY = doc.lastAutoTable.finalY + 30;
+  }
+
+  // Tabela de valores hora
+  doc.setFont("helvetica", "bold");
+  doc.text("Valores de Hora por Perfil:", 40, lastY);
+  doc.autoTable({
+    startY: lastY + 10,
+    head: [['Perfil', 'R$/h']],
+    body: [
+      ["gp", project.rates.gp || "0"],
+      ["jr", project.rates.jr || "0"],
+      ["pl", project.rates.pl || "0"],
+      ["sr", project.rates.sr || "0"]
+    ],
+    styles: {font: "helvetica", fontSize: 11},
+    margin: {left: 40, right: 40},
+    headStyles: {fillColor: [0,91,150]},
+  });
+  lastY = doc.lastAutoTable.finalY + 30;
+
+  // Resumo do projeto
+  doc.setFont("helvetica", "bold");
+  doc.text("Resumo do Projeto:", 40, lastY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  const resumo = document.getElementById('summary').value || "";
+  const splitText = doc.splitTextToSize(resumo, 500);
+  doc.text(splitText, 40, lastY + 18);
+
+  // Salva PDF
+  doc.save(`Proposta_${project.clientName||'cliente'}.pdf`);
+};
+
+// ========== EXPORTAÇÃO CSV ==========
+document.getElementById('csvBtn').onclick = function() {
+  const name = document.getElementById('projectsList').value;
+  const projects = getAllProjects();
+  if (!name || !projects[name]) {
+    alert("Selecione um projeto salvo para exportar em CSV!");
+    return;
+  }
+  const project = projects[name];
+  let csv = `Projeto,${name}\nCliente,${project.clientName}\nData,${new Date().toLocaleDateString()}\n\nServiços Selecionados:\nCódigo,Descrição,Quantidade\n`;
+  for (const cod in project.services) {
+    if (+project.services[cod] > 0) {
+      const desc = (services.find(s => s.code === cod)?.desc || cod);
+      csv += `"${cod}","${desc}",${project.services[cod]}\n`;
+    }
+  }
+  csv += `\nValores por Hora\nPerfil,R$/h\n`;
+  ["gp","jr","pl","sr"].forEach(p => {
+    csv += `${p},${project.rates[p] || "0"}\n`;
+  });
+  csv += `\nResumo do Projeto:\n"${(document.getElementById('summary').value || "").replace(/\n/g, "\\n")}"\n`;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Proposta_${project.clientName||'cliente'}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
